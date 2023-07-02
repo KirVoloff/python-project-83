@@ -22,3 +22,6 @@ build:
 dev:
 	poetry run flask --app page_analyzer:app run
 
+setup: install lock
+
+PORT ?= 8000
