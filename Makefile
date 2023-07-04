@@ -1,27 +1,24 @@
+setup: install lock
+
+PORT ?= 8000
+
 install:
 	poetry install
 
-reinstall:
-	python3 -m pip install --user --force-reinstall dist/*.whl
-
-test:
-	poetry run pytest
-
-test-coverage:
-	poetry run pytest --cov=gendiff --cov-report xml
+lock:
+	poetry lock
 
 lint:
-	poetry run flake8 gendiff
+	poetry run flake8 page_analyzer
 
-selfcheck:
+check:
 	poetry check
 
-build:
-	poetry build
+test:
+	poetry run pytest tests
 
 dev:
 	poetry run flask --app page_analyzer:app run
 
-setup: install lock
-
-PORT ?= 8000
+start:
+	poetry run gunicorn -w 3 -b 0.0.0.0:$(PORT) page_analyzer:app
