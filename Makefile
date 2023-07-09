@@ -19,3 +19,5 @@ lint:
 
 check:
 	poetry check
+
+setup: install lock
