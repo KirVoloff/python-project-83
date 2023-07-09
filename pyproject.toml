@@ -17,6 +17,7 @@ python-dotenv = "^1.0.0"
 beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.dev-dependencies]
+flake8 = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]
