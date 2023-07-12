@@ -22,3 +22,9 @@ check:
 	poetry check
 
 setup: install lock
+
+test:
+		poetry run pytest -v
+
+test-coverage:
+		poetry run pytest --cov=page_analyzer --cov-report xml

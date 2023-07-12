@@ -1,99 +1,115 @@
-import os
-import validators
-import datetime
-import requests
 import page_analyzer.db as db
-from bs4 import BeautifulSoup
-from flask import (
-    Flask, render_template,
-    request, redirect,
-    flash,
-    url_for)
-from dotenv import load_dotenv
+from page_analyzer.config import Config
+from page_analyzer.services import get_response, get_page_data, get_correct_url
 
+import logging
 
-load_dotenv()
-
-SECRET_KEY = os.getenv('SECRET_KEY')
-
+from validators.url import url as valid
+from flask import \
+    Flask, \
+    render_template, \
+    request, flash, \
+    url_for, redirect, \
+    get_flashed_messages
 
 app = Flask(__name__)
-app.secret_key = SECRET_KEY
+app.config.from_object(Config)
+
+logging.basicConfig(
+    filename='logs.log',
+    filemode='w',
+    format='%(asctime)s %(levelname)s:%(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S')
+
+logger = logging.getLogger(__name__)
 
 
-def get_html(site):
-    r = requests.get(site[0])
-    code = r.status_code
-    r.raise_for_status()
-    html = r.text
-    soup = BeautifulSoup(html, 'html.parser')
-    return code, soup
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('errors/404.html'), 404
 
 
-@app.get('/')
-def index():
-    return render_template(
-        'home.html',
-        title='Анализатор страниц',
-    )
+@app.errorhandler(500)
+def internal_server_error(error):
+    return render_template('errors/500.html'), 500
 
 
-@app.post('/urls')
-def create_url():
-    dt = datetime.datetime.now()
-    form = request.form.to_dict()
-    valid_url = validators.url(form['url'])
-    if valid_url and len(form['url']) <= 255:
-        id_find = db.get_queries_for_create_url_exist(dt, form)
-        if id_find:
-            flash('Страница уже существует', 'success')
-            return redirect(url_for('show_url', id=id_find[0]))
-        id_find = db.get_queries_for_create_url_not_exist(dt, form)
-        flash('Страница успешно добавлена', 'success')
-        return redirect(url_for('show_url', id=id_find[0]))
-    else:
-        flash('Некорректный URL', 'danger')
-        return render_template('home.html',
-                               title='Анализатор страниц',
-                               ), 422
+@app.route('/')
+def main_page():
+    return render_template('index.html', main_page=main_page)
 
 
 @app.get('/urls')
 def get_urls():
-    site = db.get_queries_for_urls()
-    return render_template('urls.html',
-                           site=site
-                           )
+    urls = db.get_urls()
+    return render_template(
+        'urls.html',
+        urls=urls
+    )
+
+
+@app.post('/urls')
+def post_urls():
+    input = request.form.to_dict()
+    url = input['url']
+
+    if not valid(url):
+        flash('Некорректный URL', 'alert-danger')
+        messages = get_flashed_messages(with_categories=True)
+        return render_template(
+            'index.html',
+            url=url,
+            messages=messages), 422
+
+    url = get_correct_url(url)
+    exists = db.is_exist_url(url)
+
+    if exists:
+        flash('Страница уже существует', 'alert-info')
+        return redirect(url_for('url_get', id=db.find_url(url).id))
+
+    result = db.add_url(url)
+
+    if result is None:
+        flash('Произошла ошибка', 'alert-danger')
+        messages = get_flashed_messages(with_categories=True)
+        return render_template(
+            'index.html',
+            url=url,
+            messages=messages), 500
+    else:
+        flash('Страница успешно добавлена', 'alert-success')
+        return redirect(url_for('url_get', id=result))
 
 
 @app.get('/urls/<int:id>')
-def show_url(id):
-    site, site2 = db.get_queries_for_show_url(id)
-    return render_template('show_url.html',
-                           site=site,
-                           site2=site2,
-                           )
+def url_get(id):
+    url = db.find_url(id)
+    checks = db.get_checks(id)
+    messages = get_flashed_messages(with_categories=True)
+    return render_template(
+        'url_analyze.html',
+        url=url,
+        checks=checks,
+        messages=messages
+    )
 
 
 @app.post('/urls/<int:id>/checks')
-def create_check(id):
+def url_check(id):
+    url = db.find_url(id)
     try:
-        dt = datetime.datetime.now()
-        site = db.get_queries_for_site_check(id)
-        code, soup = get_html(site)
-        tag = {'h1': ' ',
-               'title': ' ',
-               'meta': ' '
-               }
-        for t in tag:
-            if soup.find(t) is not None:
-                if t == 'meta' and soup.find('meta').get('content') is not None:  # noqa: Е501
-                    tag['meta'] = soup.find('meta').get('content')
-                    break
-                tag[t] = soup.find(t).text
-        db.get_queries_for_check(id, dt, code, tag)
-        flash('Страница успешно проверена', 'success')
-        return redirect(url_for('show_url', id=id))
-    except requests.exceptions.HTTPError:
-        flash('Произошла ошибка при проверке', 'danger')
-        return redirect(url_for('show_url', id=id))
+        response = get_response(url.name)
+        page = get_page_data(url.name)
+        db.add_check({
+            'id': id,
+            'status_code': response.status_code,
+            'h1': page['h1'],
+            'title': page['title'],
+            'description': page['description']})
+        flash('Страница успешно проверена', 'alert-success')
+        return redirect(url_for('url_get', id=id))
+    except Exception as err:
+        logging.error(err)
+        flash('Произошла ошибка при проверке', 'alert-danger')
+        return redirect(url_for('url_get', id=id))
