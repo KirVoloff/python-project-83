@@ -33,8 +33,11 @@ Use the package manager pip:
 Clone repository and use poetry:
 
 >    git clone https://github.com/KirVoloff/python-project-83git
+
 >    cd python-project-83
+
 >    make build
+
 >    make install
 
 1. Create PostgreSQL database with cheatsheet (database.sql)
