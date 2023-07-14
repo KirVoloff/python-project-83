@@ -25,7 +25,9 @@ A web application that execute requests over the network and stores data in a da
 ### Installation:
 
 Use the package manager pip:
-    pip install --user git+https://github.com/KirVoloff/python-project-83.git
+<div style="background-color: #f0f0f0; padding: 10px;">
+    <p>pip install --user git+https://github.com/KirVoloff/python-project-83.git</p>
+</div>
 
 ## Or
 
