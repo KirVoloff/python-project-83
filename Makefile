@@ -31,7 +31,7 @@ install:
 make-migration:
 	@$(MANAGE) makemigrations
 
-migrate: make-migration
+migrate:
 	@$(MANAGE) migrate
 
 build: install migrate
