@@ -23,15 +23,16 @@ test:
 test-coverage:
 		poetry run pytest --cov=page_analyzer --cov-report xml
 
+
 MANAGE := poetry run python manage.py
 
-install:
+install: .env
 	@poetry install
 
 make-migration:
 	@$(MANAGE) makemigrations
 
-migrate:
+migrate: make-migration
 	@$(MANAGE) migrate
 
 build: install migrate
