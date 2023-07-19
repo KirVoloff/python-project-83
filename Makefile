@@ -25,7 +25,7 @@ test-coverage:
 
 MANAGE := poetry run python manage.py
 
-install: .env
+install:
 	@poetry install
 
 make-migration:
