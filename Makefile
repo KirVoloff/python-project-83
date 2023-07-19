@@ -3,12 +3,6 @@ PORT ?= 8000
 start:
 	poetry run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
-install:
-	poetry install
-
-build:
-	poetry build
-
 dev:
 	poetry run flask --app page_analyzer:app run
 
@@ -28,3 +22,16 @@ test:
 
 test-coverage:
 		poetry run pytest --cov=page_analyzer --cov-report xml
+
+MANAGE := poetry run python manage.py
+
+install: .env
+	@poetry install
+
+make-migration:
+	@$(MANAGE) makemigrations
+
+migrate: make-migration
+	@$(MANAGE) migrate
+
+build: install migrate
