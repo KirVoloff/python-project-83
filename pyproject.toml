@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "hexlet-code"
 version = "0.1.0"
-description = ""
+description = "A web application that execute requests over the network and stores data in a database."
 authors = ["Vol'nov Kirill <volnov-93@mail.ru>"]
 readme = "README.md"
 packages = [{include = "page_analyzer"}]

@@ -14,7 +14,7 @@ def get_correct_url(url: str) -> str:
         fragment='').geturl()
 
 
-def get_page_data(url):
+def parse_page(url):
     page_data = {
         'h1': '',
         'title': '',
@@ -24,18 +24,12 @@ def get_page_data(url):
     soup = BeautifulSoup(response.text, 'html.parser')
     h1 = soup.h1
     title = soup.title
-    content = soup.find(
-        "meta", attrs={'name': 'description'})
+    content = soup.find("meta", attrs={'name': 'description'})
 
-    page_data.update(
-        {'h1': h1.get_text()}
-    ) if h1 is not None else page_data.setdefault('h1', '')
-    page_data.update(
-        {'title': title.get_text()}
-    ) if title is not None else page_data.setdefault('title', '')
-    page_data.update(
-        {'description': content["content"]}
-    ) if content is not None else page_data.setdefault('description', '')
+    page_data['h1'] = h1.get_text() if h1 else ''
+    page_data['title'] = title.get_text() if title else ''
+    page_data['description'] = content["content"] if content else ''
+
     return page_data
 
 

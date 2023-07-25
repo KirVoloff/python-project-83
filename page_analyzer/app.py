@@ -1,6 +1,10 @@
 import page_analyzer.db as db
 from page_analyzer.config import Config
-from page_analyzer.services import get_response, get_page_data, get_correct_url
+from page_analyzer.services import get_response, parse_page, get_correct_url
+from page_analyzer.utils import handle_invalid_url,\
+    handle_existing_url,\
+    handle_error,\
+    handle_success
 
 import logging
 
@@ -54,32 +58,20 @@ def post_urls():
     url = input['url']
 
     if not valid(url):
-        flash('Некорректный URL', 'alert-danger')
-        messages = get_flashed_messages(with_categories=True)
-        return render_template(
-            'index.html',
-            url=url,
-            messages=messages), 422
+        return handle_invalid_url(url)
 
     url = get_correct_url(url)
     exists = db.is_exist_url(url)
 
     if exists:
-        flash('Страница уже существует', 'alert-info')
-        return redirect(url_for('url_get', id=db.find_url(url).id))
+        return handle_existing_url(url)
 
     result = db.add_url(url)
 
     if result is None:
-        flash('Произошла ошибка', 'alert-danger')
-        messages = get_flashed_messages(with_categories=True)
-        return render_template(
-            'index.html',
-            url=url,
-            messages=messages), 500
+        return handle_error(url)
     else:
-        flash('Страница успешно добавлена', 'alert-success')
-        return redirect(url_for('url_get', id=result))
+        return handle_success(result)
 
 
 @app.get('/urls/<int:id>')
@@ -100,7 +92,7 @@ def url_check(id):
     url = db.find_url(id)
     try:
         response = get_response(url.name)
-        page = get_page_data(url.name)
+        page = parse_page(url.name)
         db.add_check({
             'id': id,
             'status_code': response.status_code,
